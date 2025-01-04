@@ -2,35 +2,12 @@
 #include <chrono>
 #include <thread>
 #include <string>
+#include <vector>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <termios.h>
-#include <fcntl.h>
 
-class Key
-{
-public:
-  static void setInputMode()
-  {
-    struct termios t;
-    tcgetattr(STDIN_FILENO, &t);
-    t.c_lflag &= ~ICANON;
-    t.c_lflag &= ~ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &t);
-
-    int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-    fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
-  }
-
-  static void resetInputMode()
-  {
-    struct termios t;
-    tcgetattr(STDIN_FILENO, &t);
-    t.c_lflag |= ICANON;
-    t.c_lflag |= ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &t);
-  }
-};
+#include "classes/Key.h"
+#include "classes/game-objects/Player.h"
 
 int main()
 {
@@ -38,13 +15,22 @@ int main()
 
   const short fps = 60;
   const short frameDuration = 1000 / fps;
-  int counter = 0;
+
+  std::vector<GameObject *> gameObjects(0);
+
+  Player player(0, 0);
+  gameObjects.push_back(&player);
+  std::cout << player.sprite << std::endl;
 
   while (true)
   {
     char key = getchar();
-    if (key == 27) break;
 
+    // Close if pressed ESC
+    if (key == Key::ESC)
+      break;
+
+    // Get terminal screen size
     auto frameStart = std::chrono::high_resolution_clock::now();
     struct winsize win;
 
@@ -58,11 +44,13 @@ int main()
 
     std::string str_separator = "";
     for (int width = 0; width < win.ws_row; width++)
+    {
       for (int height = 0; height < win.ws_col; height++)
-        str_separator += key;
+      {
+        std::cout << str_separator;
+      }
+    }
     std::cout << str_separator << std::endl;
-
-    std::cout << "Counter: " << counter++ << std::endl;
 
     auto frameEnd = std::chrono::high_resolution_clock::now();
     auto frameElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
