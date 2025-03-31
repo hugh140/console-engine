@@ -1,18 +1,15 @@
-#include <iostream>
 #include <chrono>
-#include <thread>
-#include <string>
-#include <vector>
+#include <iostream>
 #include <sys/ioctl.h>
+#include <thread>
 #include <unistd.h>
+#include <vector>
 
 #include "classes/Key.h"
+#include "classes/Window.h"
 #include "classes/game-objects/Player.h"
 
-int main()
-{
-  Key::setInputMode();
-
+int loop() {
   const short fps = 60;
   const short frameDuration = 1000 / fps;
 
@@ -22,8 +19,9 @@ int main()
   gameObjects.push_back(&player);
   std::cout << player.sprite << std::endl;
 
-  while (true)
-  {
+  Window window = Window(0, 0);
+
+  while (true) {
     char key = getchar();
 
     // Close if pressed ESC
@@ -34,31 +32,35 @@ int main()
     auto frameStart = std::chrono::high_resolution_clock::now();
     struct winsize win;
 
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &win) == -1)
-    {
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &win) == -1) {
       std::cerr << "Failed to get terminal size." << std::endl;
       return 1;
     }
 
+    window.updateSize(win.ws_col, win.ws_row);
+    window.setCellValue(10, 1, 'A');
+
     std::cout << "\033[H\033[0J";
 
-    std::string str_separator = "";
-    for (int width = 0; width < win.ws_row; width++)
-    {
-      for (int height = 0; height < win.ws_col; height++)
-      {
-        std::cout << str_separator;
-      }
-    }
-    std::cout << str_separator << std::endl;
+    window.draw();
 
     auto frameEnd = std::chrono::high_resolution_clock::now();
-    auto frameElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count();
+    auto frameElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            frameEnd - frameStart)
+                            .count();
 
     if (frameElapsed < frameDuration)
-      std::this_thread::sleep_for(std::chrono::milliseconds(frameDuration - frameElapsed));
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(frameDuration - frameElapsed));
   }
 
-  Key::resetInputMode();
   return 0;
+}
+
+int main() {
+  Key::setInputMode();
+  int status = loop();
+  Key::resetInputMode();
+
+  return status;
 }
